@@ -8,10 +8,10 @@ const verifyjwt = require("../middlewares/authMiddleware.js");
 router.post("/create", verifyjwt, async (req, res) => {
   try {
     //Getting data from request body
-    const { title, priority, dueDate } = req.body;
+    const { title, checkList, priority, dueDate } = req.body;
 
     //validation
-    if (!title || !priority || !dueDate) {
+    if ( !title || !priority || !dueDate || !checkList ) {
       return res.status(400).json({
         errorMessage: "Bad Request",
       });
@@ -20,6 +20,7 @@ router.post("/create", verifyjwt, async (req, res) => {
     //Adding data to the database
     const taskData = await Task.create({
       title,
+      checkList,
       priority,
       dueDate,
     });
@@ -57,14 +58,15 @@ router.get("/all", async (req, res) => {
 router.put("/edit/:taskId", verifyjwt, async (req, res) => {
   try {
     //getting data from request body
-    const { editTitle, editPriority, editDueDate } = req.body;
+    const { editTitle, editedChecklist, editPriority, editDueDate } = req.body;
     const title = editTitle;
+    const checkList = editedChecklist;
     const priority = editPriority;
     const dueDate = editDueDate;
     const taskId = req.params.taskId;
 
     //validation
-    if (!title || !priority || !dueDate || !taskId) {
+    if (!title || !checkList || !priority || !dueDate || !taskId) {
       res.status(400).json({
         errorMessage: "Bad Request",
       });
@@ -76,6 +78,7 @@ router.put("/edit/:taskId", verifyjwt, async (req, res) => {
       {
         $set: {
           title,
+          checkList,
           priority,
           dueDate,
         },

@@ -5,6 +5,7 @@ require("dotenv").config();
 const authRoutes = require("./routes/auth.js");
 const taskRoutes = require("./routes/task.js");
 const cors = require('cors');
+
 // const PORT = 6000;
 
 //Creating A Express Server

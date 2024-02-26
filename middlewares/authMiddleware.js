@@ -20,14 +20,14 @@ const verifyjwt = (req, res, next) => {
     //getting token from authorization header
     const [, token] = authorizationHeader.split(' ');
 
-    console.log(token);
-    console.log(process.env.JWT_SECRET);
-    console.log(typeof process.env.JWT_SECRET);
+    // console.log(token);
+    // console.log(process.env.JWT_SECRET);
+    // console.log(typeof process.env.JWT_SECRET);
     //decoding the token
     
     const decoded = jwt.verify(token, secret);
 
-    console.log(decoded);
+    // console.log(decoded);
 
     //case: token couldn't be decoded successfully
     if (!decoded) {
