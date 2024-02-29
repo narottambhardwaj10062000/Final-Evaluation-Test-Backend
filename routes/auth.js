@@ -4,6 +4,7 @@ const router = express.Router();
 const User = require("../models/auth.js");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const verifyjwt = require("../middlewares/authMiddleware.js");
 
 //Register API
 router.post("/register", async (req, res) => {
@@ -73,40 +74,103 @@ router.post("/login", async (req, res) => {
 
     //handling the case where details not present in database
     if (!userDetails) {
-        return res.status(401).json({
-            errorMessage: "Invalid Credentials !!!",
-        });
+      return res.status(401).json({
+        errorMessage: "Invalid Credentials !!!",
+      });
     }
 
     //checking whether password match or not
     const doesPasswordMatch = await bcrypt.compare(
-        password,
-        userDetails.password
+      password,
+      userDetails.password
     );
 
     //case: password did not match
     if (!doesPasswordMatch) {
-        return res.status(401).json({
-            errorMessage: "Invalid Credentials"
-        });
+      return res.status(401).json({
+        errorMessage: "Invalid Credentials",
+      });
     }
 
     //case: password matched
     const token = await jwt.sign(
-        { userId: userDetails._id },
-        process.env.JWT_SECRET
+      { userId: userDetails._id },
+      process.env.JWT_SECRET
     );
 
     //sending JSON response
     res.json({
-        name: userDetails.name,
-        message: "User Logged In Successfully",
-        token: token,
-    }); 
-
+      name: userDetails.name,
+      message: "User Logged In Successfully",
+      token: token,
+    });
   } catch (error) {
     console.log(error);
   }
+});
+
+// <----------------- Settings ----------------->
+router.put("/update", verifyjwt, async (req, res) => {
+  try {
+    const userExist = await User.findOne({
+      _id: req.body.userId,
+    });
+    if (userExist) {
+      if (req.body?.oldpassword !== "" && req.body?.newpassword !== "") {
+        const verifiedPass = await pass.verifyPassword(
+          req.body.oldpassword,
+          userExist.password
+        );
+        if (verifiedPass) {
+          const hashedPassword = await pass.hashPassword(req.body.newpassword);
+          const obj = {
+            name: req.body.name,
+            password: hashedPassword,
+          };
+          if (req.body?.name !== "") {
+            const result = await User.findOneAndUpdate(
+              { _id: req.body.userId },
+              { $set: obj },
+              { new: true }
+            );
+            if (result)
+              res
+                .status(200)
+                .send({
+                  message: "Name and Password Updated",
+                  name: result.name,
+                });
+            else res.status(400).send({ message: "Network Error" });
+          } else {
+            const result = await User.findOneAndUpdate(
+              { _id: req.body.userId },
+              { $set: { password: hashedPassword } }
+            );
+            if (result) res.status(200).send({ message: "Password Updated" });
+            else res.status(400).send({ message: "Network Error" });
+          }
+        } else {
+          res.status(400).send({ message: "Wrong Old Password" });
+        }
+      } else if (req.body?.name !== "") {
+        const result = await User.findOneAndUpdate(
+          { _id: req.body.userId },
+          { $set: { name: req.body.name } },
+          { new: true }
+        );
+        if (result)
+          res.status(200).send({ message: "Name Updated", name: result.name });
+        else res.status(400).send({ message: "Network Error" });
+      } else res.status(400).send({ message: `All Fields can't be empty` });
+    } else res.status(400).send({ message: "Network Error" });
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
+
+//Protected Routing
+router.get("/protected", verifyjwt, async (req, res) => {
+  res.status(200).send({ message: "Authorized User" });
 });
 
 //Exports

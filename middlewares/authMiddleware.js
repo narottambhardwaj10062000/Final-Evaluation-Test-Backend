@@ -7,18 +7,17 @@ const verifyjwt = (req, res, next) => {
     //looking for my jwt token in request header
     const authorizationHeader = req.headers.authorization;
     const secret = process.env.JWT_SECRET;
+    const [, token] = authorizationHeader.split(' ');
 
-    console.log(authorizationHeader);
+    // console.log(authorizationHeader);
 
     //case: token not found
-    if (!authorizationHeader) {
+    if (token === "null") {
       return res.status(401).json({
-        errorMessage: "Unauthorized User",
+        errorMessage: "Token Not Found",
       });
     }
 
-    //getting token from authorization header
-    const [, token] = authorizationHeader.split(' ');
 
     // console.log(token);
     // console.log(process.env.JWT_SECRET);

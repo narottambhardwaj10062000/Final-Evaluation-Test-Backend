@@ -1,7 +1,7 @@
 //Imports
 const mongoose = require("mongoose");
 
-//cresting checklist Schema
+//creating checklist Schema
 const checkListSchema = new mongoose.Schema({
     body: {
         type: String,
@@ -26,12 +26,16 @@ const taskSchema = new mongoose.Schema({
     },
     dueDate: {
         type: String,
-        required: true,
     },
     status: {
         type: String,
         default: "todo"
-    }
+    },
+    refUserId: {
+        type: mongoose.Types.ObjectId,
+        required: true,
+    },
+
 }, { timestamps: true });
 
 //exporting Task model 

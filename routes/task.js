@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const Task = require("../models/task.js");
+const User = require("../models/auth.js");
 const verifyjwt = require("../middlewares/authMiddleware.js");
 
 //Create Task API
@@ -9,9 +10,10 @@ router.post("/create", verifyjwt, async (req, res) => {
   try {
     //Getting data from request body
     const { title, checkList, priority, dueDate } = req.body;
+    // console.log(checkList.length);
 
-    //validation
-    if ( !title || !priority || !dueDate || !checkList ) {
+    //validations
+    if ( !title || !priority || checkList.length === 0 ) {
       return res.status(400).json({
         errorMessage: "Bad Request",
       });
@@ -23,6 +25,7 @@ router.post("/create", verifyjwt, async (req, res) => {
       checkList,
       priority,
       dueDate,
+      refUserId: req.body.userId,
     });
 
     //sending JSON response
@@ -33,26 +36,126 @@ router.post("/create", verifyjwt, async (req, res) => {
     });
   } catch (error) {
     console.log(error);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 });
 
 //Get All Tasks API
-router.get("/all", async (req, res) => {
+router.get("/all", verifyjwt, async (req, res) => {
+  try {
+     // console.log(req.query.filter);
+    const userId = req.body.userId;
+    // console.log(userId);
+    
+    //getting all tasks from database
+    const taskList = await Task.find({refUserId: userId}, {});
+    // const newTaskList = [...taskList];
 
-  // console.log(req.query.filter);
+    // console.log(newTaskList);
+    // console.log(typeof newTaskList);
 
-  //getting all tasks from database
-  const taskList = await Task.find({});
-  const newTaskList = [...taskList];
-
-  // console.log(newTaskList);
-  // console.log(typeof newTaskList);
-
-  //sending the tasklist as JSON response
-  res.json({
-    data: taskList,
-  });
+    //sending the tasklist as JSON response
+    res.json({
+      data: taskList,
+    });
+  } catch ( error ) {
+    console.log(error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
 });
+
+// <----------------- All Task API----------------->
+// router.get('/alltask/:filter', verifyjwt, async (req, res) => {
+//   try {
+//       const user = await User.findOne({
+//           email: req.email
+//       })
+
+//       const today = new Date();
+
+//       if (req.params.filter === 'week') {
+//           const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
+//           const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay() + 7);
+//           const task = await Task.find(
+//               {
+//                   userId: user._id,
+//                   createdDate: {
+//                       $gte: start,
+//                       $lt: end
+//                   }
+//               }
+//           ).sort({updatedDate : 1});
+//           if (task)
+//               taskFun(task, res, user);
+//       }
+
+//       else if (req.params.filter === 'month') {
+//           const start = new Date(today.getFullYear(), today.getMonth(), 1);
+//           const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+//           const task = await Task.find(
+//               {
+//                   userId: user._id,
+//                   createdDate: {
+//                       $gte: start,
+//                       $lt: end
+//                   }
+//               }
+//           ).sort({updatedDate : 1});
+//           if (task)
+//               taskFun(task, res, user);
+//       }
+
+//       else if (req.params.filter === 'today') {
+//           const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+//           const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+//           const task = await Task.find(
+//               {
+//                   userId: user._id,
+//                   createdDate: {
+//                       $gte: start,
+//                       $lt: end
+//                   }
+//               }
+//           ).sort({updatedDate : 1});
+//           if (task)
+//               taskFun(task, res, user);
+//       }
+//       else
+//           res.status(404).send({ message: 'Wrong Parameter' });
+
+//   } catch (error) {
+//       console.log(error)
+//       res.status(500).send(error);
+//   }
+// })
+
+// function taskFun(task, res, user) {
+//   if (task) {
+//       const Todo = [];
+//       const Backlog = [];
+//       const Progress = [];
+//       const Done = [];
+
+//       task.map(item => {
+//           if (item.status === 'TO-DO')
+//               Todo.push(item);
+//           else if (item.status === 'BACKLOG')
+//               Backlog.push(item);
+//           else if (item.status === 'PROGRESS')
+//               Progress.push(item);
+//           else if (item.status === 'DONE')
+//               Done.push(item);
+//       })
+
+//       const obj = {
+//           todo: Todo, backlog: Backlog, progress: Progress, done: Done
+//       }
+//       res.status(200).send({ name: user.name, task: obj });
+//   }
+//   else
+//       res.status(203).send({ name: user.name, task: [] });
+// }
+
 
 //Edit Task API
 router.put("/edit/:taskId", verifyjwt, async (req, res) => {
@@ -66,7 +169,7 @@ router.put("/edit/:taskId", verifyjwt, async (req, res) => {
     const taskId = req.params.taskId;
 
     //validation
-    if (!title || !checkList || !priority || !dueDate || !taskId) {
+    if (!title || !checkList || !priority || !taskId) {
       res.status(400).json({
         errorMessage: "Bad Request",
       });
@@ -81,6 +184,7 @@ router.put("/edit/:taskId", verifyjwt, async (req, res) => {
           checkList,
           priority,
           dueDate,
+          refUserId: req.body.userId
         },
       }
     );
@@ -91,6 +195,7 @@ router.put("/edit/:taskId", verifyjwt, async (req, res) => {
     });
   } catch (error) {
     console.log(error);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 });
 
@@ -108,6 +213,7 @@ router.delete("/delete/:taskId", verifyjwt, async (req, res) => {
     });
   } catch (error) {
     console.log(error);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 });
 
@@ -133,8 +239,127 @@ router.put("/update/:taskId", verifyjwt, async (req, res) => {
 
   } catch (error) {
     console.log(error);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
+//Handling update checkbox state API
+router.put("/updatecheckbox/:taskId", async (req, res) => {
+  try {
+    const { state } = req.body;
+    const taskId = req.params.taskId;
+    const checkboxId = req.query.checkboxId;
+    // console.log(taskId);
+    // console.log(checkboxId);
+    
+    const task = await Task.findById(taskId);
+
+    if(!task) {
+      return res.status(404).json({ error: "Task not found"});
+    }
+
+    const checklistItem = task.checkList.id(checkboxId);
+
+    if(!checklistItem) {
+      return res.status(404).json({ error: "CheckList item not found" });
+    }
+
+    checklistItem.isCompleted = state;
+    await task.save();
+
+    res.json({ message: "Checkbox State updated successfully"});
+  } catch ( error ) {
+    console.log(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// <----------------- Analytics ----------------->
+router.get('/analytics', verifyjwt, async (req, res) => {
+  try {
+      const task = await Task.find(
+        {refUserId: req.body.userId}, {}
+      )
+      console.log(task);
+      if (task) {
+          const list = [
+              {
+                  TaskName: 'Backlog Tasks',
+                  Number: 0
+              },
+              {
+                  TaskName: 'To-do Tasks',
+                  Number: 0,
+              },
+              {
+                  TaskName: 'In-Progress Tasks',
+                  Number: 0
+              },
+              {
+                  TaskName: 'Completed Tasks',
+                  Number: 0
+              },
+              {
+                  TaskName: 'Low Priority',
+                  Number: 0
+              },
+              {
+                  TaskName: 'Moderate Priority',
+                  Number: 0
+              },
+              {
+                  TaskName: 'High Priority',
+                  Number: 0
+              },
+              {
+                  TaskName: 'Due Date Tasks',
+                  Number: 0
+              }
+          ]
+
+          task.map(item => {
+              if (item.status === 'backlog')
+              list[0].Number++;
+              else if (item.status === 'todo')
+              list[1].Number++;
+              else if (item.status === 'progress')
+              list[2].Number++;
+              else if (item.status === 'done')
+              list[3].Number++;
+              
+              if (item.priority === 'Low Priority')
+              list[4].Number++;
+              else if (item.priority === 'Moderate Priority')
+              list[5].Number++;
+              else if (item.priority === 'High Priority')
+              list[6].Number++;
+
+              if (item.dueDate !== '')
+              list[7].Number++;
+          })
+
+          res.status(200).send({ task: list });
+      }
+      else
+          res.status(203).send({ task: list });
+
+  } catch (error) {
+    console.log(error)
+      res.status(500).send(error);
+  }
+})
+
+//Shared Task
+router.get('/share/:taskid', async (req, res) => {
+  try {
+      const task = await Task.findOne({ _id: req.params.taskid });
+      if (task) {
+          res.status(200).send({ task: task });
+      } else res.status(404).send({ message: 'No Task Found' });
+  } catch (error) {
+      res.status(500).send(error);
+  }
+})
 
 //Exports
 module.exports = router;
