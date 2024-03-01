@@ -31,12 +31,20 @@ const taskSchema = new mongoose.Schema({
         type: String,
         default: "todo"
     },
+    createdDate: {
+        type: Date,
+        default: Date.now
+    },
+    updatedDate: {
+        type: Date,
+        default: Date.now
+    },
     refUserId: {
         type: mongoose.Types.ObjectId,
         required: true,
     },
 
-}, { timestamps: true });
+}, );
 
 //exporting Task model 
 module.exports = mongoose.model("Task", taskSchema);

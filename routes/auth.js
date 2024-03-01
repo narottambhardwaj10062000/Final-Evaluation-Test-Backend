@@ -53,6 +53,7 @@ router.post("/register", async (req, res) => {
     });
   } catch (error) {
     console.log(error);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 });
 
@@ -117,12 +118,12 @@ router.put("/update", verifyjwt, async (req, res) => {
     });
     if (userExist) {
       if (req.body?.oldpassword !== "" && req.body?.newpassword !== "") {
-        const verifiedPass = await pass.verifyPassword(
+        const verifiedPass = await bcrypt.compare(
           req.body.oldpassword,
           userExist.password
         );
         if (verifiedPass) {
-          const hashedPassword = await pass.hashPassword(req.body.newpassword);
+          const hashedPassword = await bcrypt.hash(req.body.newpassword, 10);
           const obj = {
             name: req.body.name,
             password: hashedPassword,
@@ -164,6 +165,7 @@ router.put("/update", verifyjwt, async (req, res) => {
       } else res.status(400).send({ message: `All Fields can't be empty` });
     } else res.status(400).send({ message: "Network Error" });
   } catch (error) {
+    console.log(error);
     res.status(500).send(error);
   }
 });

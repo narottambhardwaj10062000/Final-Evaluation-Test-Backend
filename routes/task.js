@@ -40,121 +40,99 @@ router.post("/create", verifyjwt, async (req, res) => {
   }
 });
 
-//Get All Tasks API
-router.get("/all", verifyjwt, async (req, res) => {
+// <----------------- Get All Task API----------------->
+router.get('/alltask/:filter', verifyjwt, async (req, res) => {
+  console.log(req.params.filter);
   try {
-     // console.log(req.query.filter);
-    const userId = req.body.userId;
-    // console.log(userId);
-    
-    //getting all tasks from database
-    const taskList = await Task.find({refUserId: userId}, {});
-    // const newTaskList = [...taskList];
+      const user = await User.findOne({
+          _id: req.body.userId
+      })
 
-    // console.log(newTaskList);
-    // console.log(typeof newTaskList);
+      const today = new Date();
 
-    //sending the tasklist as JSON response
-    res.json({
-      data: taskList,
-    });
-  } catch ( error ) {
-    console.log(error);
-    res.status(500).json({ message: 'Internal Server Error' });
+      if (req.params.filter === 'week') {
+          const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
+          const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay() + 7);
+          const task = await Task.find(
+              {
+                refUserId: user._id,
+                createdDate: {
+                      $gte: start,
+                      $lt: end
+                  }
+              }
+          ).sort({updatedDate : 1});
+          // console.log(task);
+          if (task)
+              taskFun(task, res, user);
+      }
+
+      else if (req.params.filter === 'month') {
+          const start = new Date(today.getFullYear(), today.getMonth(), 1);
+          const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+          const task = await Task.find(
+              {
+                refUserId: user._id,
+                createdDate: {
+                      $gte: start,
+                      $lt: end
+                  }
+              }
+          ).sort({updatedDate : 1});
+          if (task)
+              taskFun(task, res, user);
+      }
+
+      else if (req.params.filter === 'today') {
+          const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+          const task = await Task.find(
+              {
+                refUserId: user._id,
+                createdDate: {
+                      $gte: start,
+                      $lt: end
+                  }
+              }
+          ).sort({updatedDate : 1});
+          if (task)
+              taskFun(task, res, user);
+      }
+      else
+          res.status(404).send({ message: 'Wrong Parameter' });
+
+  } catch (error) {
+      console.log(error)
+      res.status(500).send(error);
   }
-});
+})
 
-// <----------------- All Task API----------------->
-// router.get('/alltask/:filter', verifyjwt, async (req, res) => {
-//   try {
-//       const user = await User.findOne({
-//           email: req.email
-//       })
+function taskFun(task, res, user) {
+  if (task) {
+      const Todo = [];
+      const Backlog = [];
+      const Progress = [];
+      const Done = [];
 
-//       const today = new Date();
+      task.map(item => {
+          if (item.status === 'todo')
+              Todo.push(item);
+          else if (item.status === 'backlog')
+              Backlog.push(item);
+          else if (item.status === 'progress')
+              Progress.push(item);
+          else if (item.status === 'done')
+              Done.push(item);
+      })
 
-//       if (req.params.filter === 'week') {
-//           const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
-//           const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay() + 7);
-//           const task = await Task.find(
-//               {
-//                   userId: user._id,
-//                   createdDate: {
-//                       $gte: start,
-//                       $lt: end
-//                   }
-//               }
-//           ).sort({updatedDate : 1});
-//           if (task)
-//               taskFun(task, res, user);
-//       }
-
-//       else if (req.params.filter === 'month') {
-//           const start = new Date(today.getFullYear(), today.getMonth(), 1);
-//           const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-//           const task = await Task.find(
-//               {
-//                   userId: user._id,
-//                   createdDate: {
-//                       $gte: start,
-//                       $lt: end
-//                   }
-//               }
-//           ).sort({updatedDate : 1});
-//           if (task)
-//               taskFun(task, res, user);
-//       }
-
-//       else if (req.params.filter === 'today') {
-//           const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-//           const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-//           const task = await Task.find(
-//               {
-//                   userId: user._id,
-//                   createdDate: {
-//                       $gte: start,
-//                       $lt: end
-//                   }
-//               }
-//           ).sort({updatedDate : 1});
-//           if (task)
-//               taskFun(task, res, user);
-//       }
-//       else
-//           res.status(404).send({ message: 'Wrong Parameter' });
-
-//   } catch (error) {
-//       console.log(error)
-//       res.status(500).send(error);
-//   }
-// })
-
-// function taskFun(task, res, user) {
-//   if (task) {
-//       const Todo = [];
-//       const Backlog = [];
-//       const Progress = [];
-//       const Done = [];
-
-//       task.map(item => {
-//           if (item.status === 'TO-DO')
-//               Todo.push(item);
-//           else if (item.status === 'BACKLOG')
-//               Backlog.push(item);
-//           else if (item.status === 'PROGRESS')
-//               Progress.push(item);
-//           else if (item.status === 'DONE')
-//               Done.push(item);
-//       })
-
-//       const obj = {
-//           todo: Todo, backlog: Backlog, progress: Progress, done: Done
-//       }
-//       res.status(200).send({ name: user.name, task: obj });
-//   }
-//   else
-//       res.status(203).send({ name: user.name, task: [] });
-// }
+      const obj = {
+          todo: Todo, backlog: Backlog, progress: Progress, done: Done
+      }
+      res.status(200).send({ name: user.name, task: obj });
+  }
+  else
+      res.status(203).send({ name: user.name, task: [] });
+}
 
 
 //Edit Task API
@@ -267,7 +245,7 @@ router.put("/updatecheckbox/:taskId", async (req, res) => {
     checklistItem.isCompleted = state;
     await task.save();
 
-    res.json({ message: "Checkbox State updated successfully"});
+    res.status(200).json({ message: "Checkbox State updated successfully", checklist: task.checkList });
   } catch ( error ) {
     console.log(error);
     res.status(500).json({ error: "Internal server error" });
@@ -327,14 +305,14 @@ router.get('/analytics', verifyjwt, async (req, res) => {
               else if (item.status === 'done')
               list[3].Number++;
               
-              if (item.priority === 'Low Priority')
+              if (item.priority === 'Low Priority' && item.status !== 'done')
               list[4].Number++;
-              else if (item.priority === 'Moderate Priority')
+              else if (item.priority === 'Moderate Priority' && item.status !== 'done')
               list[5].Number++;
-              else if (item.priority === 'High Priority')
+              else if (item.priority === 'High Priority' && item.status !== 'done')
               list[6].Number++;
 
-              if (item.dueDate !== '')
+              if (item.dueDate !== '' && item.status !== 'done')
               list[7].Number++;
           })
 
